@@ -1,0 +1,597 @@
+from abc import ABC, abstractmethod
+from datetime import datetime
+
+
+# ================= VEHICLE =================
+
+class Vehicle(ABC):
+
+    def __init__(self, owner, phone, number, model):
+        self.owner = owner
+        self.phone = phone
+        self.number = number
+        self.model = model
+
+    @abstractmethod
+    def service_charge(self):
+        pass
+
+
+# ================= INHERITANCE =================
+
+class Car(Vehicle):
+
+    def service_charge(self):
+        return 2000
+
+
+class Bike(Vehicle):
+
+    def service_charge(self):
+        return 800
+
+
+# ================= MECHANIC =================
+
+class Mechanic:
+
+    def __init__(self, name):
+        self.name = name
+
+
+# ================= SERVICE JOB =================
+
+class ServiceJob:
+
+    def __init__(self, job_id, vehicle, mechanic, part_cost):
+
+        self.job_id = job_id
+        self.vehicle = vehicle
+        self.mechanic = mechanic
+        self.part_cost = part_cost
+
+        self.status = "Pending"
+        self.__paid = False
+
+        self.discount = 0
+
+        self.date = datetime.now().strftime(
+            "%d-%m-%Y %H:%M"
+        )
+
+    def total_bill(self):
+
+        labour = self.vehicle.service_charge()
+
+        total = labour + self.part_cost
+
+        discount_amount = total * self.discount / 100
+
+        return total - discount_amount
+
+    def show_bill(self):
+
+        print("\n========== SERVICE INVOICE ==========")
+
+        print("Job ID:", self.job_id)
+        print("Date:", self.date)
+
+        print("-------------------------------------")
+
+        print("Customer:", self.vehicle.owner)
+        print("Phone:", self.vehicle.phone)
+
+        print("Vehicle:", self.vehicle.model)
+        print("Number:", self.vehicle.number)
+
+        print("Mechanic:", self.mechanic.name)
+
+        print("-------------------------------------")
+
+        print("Labour Charges: Rs", self.vehicle.service_charge())
+        print("Spare Parts: Rs", self.part_cost)
+
+        print("Discount:", self.discount, "%")
+
+        print("-------------------------------------")
+
+        print("TOTAL: Rs", round(self.total_bill(), 2))
+
+        print("Service Status:", self.status)
+
+        print(
+            "Payment:",
+            "Paid" if self.__paid else "Unpaid"
+        )
+
+        print("=====================================")
+
+    def complete_payment(self):
+
+        if self.status != "Completed":
+            print("Complete the service before accepting payment.")
+            return
+
+        if self.__paid:
+            print("Bill already paid!")
+
+        else:
+            self.__paid = True
+            print("Payment successful!")
+
+    def is_paid(self):
+        return self.__paid
+
+    def start_service(self):
+
+        if self.status == "Cancelled":
+            print("Cannot start a cancelled job.")
+
+        elif self.status == "Completed":
+            print("Service already completed.")
+
+        else:
+            self.status = "In Progress"
+            print("Service started!")
+
+    def complete_service(self):
+
+        if self.status == "Cancelled":
+            print("This job has been cancelled.")
+
+        elif self.status == "Pending":
+            print("Start the service first.")
+
+        elif self.status == "Completed":
+            print("Service already completed.")
+
+        else:
+            self.status = "Completed"
+            print("Service completed successfully!")
+
+    def cancel_job(self):
+
+        if self.__paid:
+            print("Cannot cancel a paid job.")
+
+        elif self.status == "Completed":
+            print("Cannot cancel a completed job.")
+
+        else:
+            self.status = "Cancelled"
+            print("Service job cancelled!")
+
+
+# ================= GARAGE MANAGEMENT =================
+
+class Garage:
+
+    def __init__(self):
+
+        self.jobs = []
+
+        self.mechanics = [
+            Mechanic("Rahul"),
+            Mechanic("Aman")
+        ]
+
+        self.next_id = 1
+
+    # REGISTER JOB
+
+    def add_job(self):
+
+        print("\n========== REGISTER SERVICE ==========")
+
+        owner = input("Customer name: ")
+
+        phone = input("Phone number: ")
+
+        number = input("Vehicle number: ")
+
+        model = input("Vehicle model: ")
+
+        kind = input("Car or Bike: ").lower()
+
+        if kind == "car":
+            vehicle = Car(owner, phone, number, model)
+
+        elif kind == "bike":
+            vehicle = Bike(owner, phone, number, model)
+
+        else:
+            print("Invalid vehicle type.")
+            return
+
+        print("\nAvailable Mechanics:")
+
+        for i, mechanic in enumerate(self.mechanics, 1):
+            print(i, mechanic.name)
+
+        try:
+            choice = int(input("Choose mechanic: "))
+            mechanic = self.mechanics[choice - 1]
+
+        except (ValueError, IndexError):
+            print("Invalid mechanic selection.")
+            return
+
+        try:
+            parts = float(input("Spare parts cost: Rs "))
+
+            if parts < 0:
+                print("Cost cannot be negative.")
+                return
+
+            discount = float(input("Discount percentage (0-100): "))
+
+            if not 0 <= discount <= 100:
+                print("Invalid discount.")
+                return
+
+        except ValueError:
+            print("Enter a valid amount.")
+            return
+
+        job = ServiceJob(
+            self.next_id,
+            vehicle,
+            mechanic,
+            parts
+        )
+
+        job.discount = discount
+
+        self.jobs.append(job)
+
+        print("\nService job registered successfully!")
+        print("Your Job ID is:", self.next_id)
+
+        self.next_id += 1
+
+    # VIEW ALL JOBS
+
+    def show_jobs(self):
+
+        if not self.jobs:
+            print("\nNo service jobs found.")
+            return
+
+        print("\n========== ALL SERVICE JOBS ==========")
+
+        for job in self.jobs:
+
+            print("\nJob ID:", job.job_id)
+            print("Customer:", job.vehicle.owner)
+            print("Vehicle:", job.vehicle.model)
+            print("Vehicle Number:", job.vehicle.number)
+            print("Mechanic:", job.mechanic.name)
+            print("Status:", job.status)
+            print("Payment:", "Paid" if job.is_paid() else "Unpaid")
+            print("Total: Rs", round(job.total_bill(), 2))
+
+    # SEARCH JOB
+
+    def search_job(self):
+
+        search = input(
+            "\nEnter Job ID or Vehicle Number: "
+        ).strip()
+
+        found = False
+
+        for job in self.jobs:
+
+            if (
+                str(job.job_id) == search
+                or job.vehicle.number.lower() == search.lower()
+            ):
+
+                job.show_bill()
+                found = True
+
+        if not found:
+            print("No matching job found.")
+
+    # FIND JOB BY ID
+
+    def get_job(self):
+
+        try:
+
+            job_id = int(input("Enter Job ID: "))
+
+            for job in self.jobs:
+
+                if job.job_id == job_id:
+                    return job
+
+            print("Job ID not found.")
+
+        except ValueError:
+            print("Enter a valid Job ID.")
+
+        return None
+
+    # START SERVICE
+
+    def start_service(self):
+
+        job = self.get_job()
+
+        if job:
+            job.start_service()
+
+    # COMPLETE SERVICE
+
+    def complete_service(self):
+
+        job = self.get_job()
+
+        if job:
+            job.complete_service()
+
+    # PAYMENT
+
+    def payment(self):
+
+        job = self.get_job()
+
+        if job:
+            job.show_bill()
+            job.complete_payment()
+
+    # CANCEL JOB
+
+    def cancel_service(self):
+
+        job = self.get_job()
+
+        if job:
+            job.cancel_job()
+
+    # EDIT SERVICE JOB
+
+    def edit_service(self):
+
+        job = self.get_job()
+
+        if not job:
+            return
+
+        if job.status in ["Completed", "Cancelled"]:
+            print("Cannot edit a completed or cancelled job.")
+            return
+
+        print("\n========== EDIT SERVICE JOB ==========")
+
+        print("1. Customer Name")
+        print("2. Phone Number")
+        print("3. Vehicle Number")
+        print("4. Vehicle Model")
+        print("5. Vehicle Type")
+        print("6. Mechanic")
+        print("7. Spare Parts Cost")
+        print("8. Discount")
+        print("0. Back")
+
+        choice = input("Choose what to edit: ")
+
+        if choice == "1":
+
+            job.vehicle.owner = input("Enter new customer name: ")
+
+        elif choice == "2":
+
+            job.vehicle.phone = input("Enter new phone number: ")
+
+        elif choice == "3":
+
+            job.vehicle.number = input("Enter new vehicle number: ")
+
+        elif choice == "4":
+
+            job.vehicle.model = input("Enter new vehicle model: ")
+
+        elif choice == "5":
+
+            kind = input("Enter Car or Bike: ").lower()
+
+            if kind == "car":
+
+                job.vehicle = Car(
+                    job.vehicle.owner,
+                    job.vehicle.phone,
+                    job.vehicle.number,
+                    job.vehicle.model
+                )
+
+            elif kind == "bike":
+
+                job.vehicle = Bike(
+                    job.vehicle.owner,
+                    job.vehicle.phone,
+                    job.vehicle.number,
+                    job.vehicle.model
+                )
+
+            else:
+                print("Invalid vehicle type.")
+                return
+
+        elif choice == "6":
+
+            print("\nAvailable Mechanics:")
+
+            for i, mechanic in enumerate(self.mechanics, 1):
+                print(i, mechanic.name)
+
+            try:
+
+                mechanic_choice = int(input("Choose mechanic: "))
+
+                job.mechanic = self.mechanics[mechanic_choice - 1]
+
+            except (ValueError, IndexError):
+
+                print("Invalid mechanic selection.")
+                return
+
+        elif choice == "7":
+
+            try:
+
+                cost = float(input("Enter new spare parts cost: Rs "))
+
+                if cost < 0:
+                    print("Cost cannot be negative.")
+                    return
+
+                job.part_cost = cost
+
+            except ValueError:
+
+                print("Enter a valid amount.")
+                return
+
+        elif choice == "8":
+
+            try:
+
+                discount = float(input("Enter new discount (0-100): "))
+
+                if not 0 <= discount <= 100:
+                    print("Invalid discount.")
+                    return
+
+                job.discount = discount
+
+            except ValueError:
+
+                print("Enter a valid discount.")
+                return
+
+        elif choice == "0":
+            return
+
+        else:
+
+            print("Invalid choice.")
+            return
+
+        print("\nService job updated successfully!")
+        job.show_bill()
+
+    # GARAGE DASHBOARD
+
+    def dashboard(self):
+
+        total = len(self.jobs)
+
+        pending = 0
+        progress = 0
+        completed = 0
+        cancelled = 0
+
+        revenue = 0
+
+        for job in self.jobs:
+
+            if job.status == "Pending":
+                pending += 1
+
+            elif job.status == "In Progress":
+                progress += 1
+
+            elif job.status == "Completed":
+                completed += 1
+
+            elif job.status == "Cancelled":
+                cancelled += 1
+
+            if job.is_paid():
+                revenue += job.total_bill()
+
+        print("\n========== GARAGE DASHBOARD ==========")
+
+        print("Total Jobs:", total)
+        print("Pending:", pending)
+        print("In Progress:", progress)
+        print("Completed:", completed)
+        print("Cancelled:", cancelled)
+
+        print("--------------------------------------")
+
+        print("Total Revenue: Rs", round(revenue, 2))
+
+        print("======================================")
+
+
+    # MAIN MENU
+
+    def run(self):
+
+        while True:
+
+            print("\n")
+            print("======================================")
+            print("       GARAGE MANAGEMENT SYSTEM")
+            print("======================================")
+
+            print("1. Register Service Job")
+            print("2. View All Jobs")
+            print("3. Start Service")
+            print("4. Complete Service")
+            print("5. Generate Bill & Payment")
+            print("6. Search Service Job")
+            print("7. Cancel Service")
+            print("8. Garage Dashboard")
+            print("9. Edit Service Job")
+            print("0. Exit")
+
+            print("======================================")
+
+            choice = input("Enter your choice: ")
+
+            if choice == "1":
+                self.add_job()
+
+            elif choice == "2":
+                self.show_jobs()
+
+            elif choice == "3":
+                self.start_service()
+
+            elif choice == "4":
+                self.complete_service()
+
+            elif choice == "5":
+                self.payment()
+
+            elif choice == "6":
+                self.search_job()
+
+            elif choice == "7":
+                self.cancel_service()
+
+            elif choice == "8":
+                self.dashboard()
+
+            elif choice == "9":
+                self.edit_service()
+
+            elif choice == "0":
+
+                print("\nThank you for using Garage Management System!")
+
+                break
+
+            else:
+                print("Invalid choice. Try again.")
+
+
+# ================= START APPLICATION =================
+
+garage = Garage()
+
+garage.run()
